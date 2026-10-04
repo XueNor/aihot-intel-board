@@ -104,23 +104,25 @@ jobs:
           EDGEONE_API_TOKEN: ${{ secrets.EDGEONE_API_TOKEN }}
         run: |
           set -o pipefail
+          # 不用 --json：CLI 在不同环境下JSON 行为不一致（--json 与装饰日志
+          # 混杂、退出码被 tee 吞掉）。文本模式输出 EDGEONE_DEPLOY_URL=xxx
+          # 形式更稳定，解析脚本已同时兼容两种形态。
           npx --yes edgeone@latest makers deploy ./dist \
             -n "$SITE_NAME" \
             -t "$EDGEONE_API_TOKEN" \
             -a "$EDGEONE_AREA" \
             -e production \
-            --json 2>&1 | tee deploy-output.log
+            2>&1 | tee deploy-output.log
           CODE=${PIPESTATUS[0]}
           echo "CLI 退出码: $CODE"
-          echo "$CODE" > cli-exit-code.txt
-          # 无条件把原始输出写进摘要：Actions 步骤日志页有时加载不出细节，
-          # 摘要里的内容一定能读到，便于排查。
           {
             echo "### EdgeOne 部署原始输出"
             echo '```'
             cat deploy-output.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # 部署失败就不要往下走解析，直接让本步失败，日志已落盘可查
+          exit $CODE
 
       - name: 解析部署结果
         if: always()

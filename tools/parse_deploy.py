@@ -42,6 +42,49 @@ def find_json_object(text):
         return None
 
 
+def find_status_object(text):
+    """从 CLI 文本输出中提取部署结果。
+
+    实测 CLI（v1.7+）在文本模式下输出形如：
+        [cli][✔] Deploy Success
+        [cli][✔] Deploy URL: https://xxx.edgeone.dev
+    而非文档里提到的 EDGEONE_DEPLOY_URL=xxx 键值形式，
+    因此两种写法都要认。
+    """
+    clean = ANSI_RE.sub("", text)
+    pairs = dict(re.findall(r"EDGEONE_([A-Z_]+)=(\S+)", clean))
+    if "DEPLOY_URL" in pairs:
+        return {
+            "status": "success",
+            "url": pairs["DEPLOY_URL"],
+            "projectId": pairs.get("PROJECT_ID", ""),
+            "deploymentId": pairs.get("DEPLOYMENT_ID", ""),
+        }
+
+    # 无 Deploy Success 标志则视为失败
+    if "Deploy Success" not in clean:
+        return None
+
+    url = ""
+    match = re.search(r"Deploy URL:\s*(\S+)", clean)
+    if match:
+        url = match.group(1).rstrip("\"'")
+    if not url:
+        match = re.search(r"https://[\w.-]*edgeone\.(?:dev|app|co)[^\s\"'<>]*", clean)
+        url = match.group(0).rstrip("\"'") if match else ""
+
+    if not url:
+        return None
+
+    dep = re.search(r"Deployment ID:\s*(\S+)", clean)
+    return {
+        "status": "success",
+        "url": url,
+        "projectId": "",
+        "deploymentId": dep.group(1) if dep else "",
+    }
+
+
 def salvage_url(text):
     """兜底：从日志里抓取部署地址。仅在已确认部署成功时使用。"""
     if "Deploy Success" not in text and "EDGEONE_DEPLOY_URL" not in text:
@@ -60,10 +103,13 @@ def main():
         return 1
 
     result = find_json_object(text)
+    if result is None:
+        # 文本模式：退化到 EDGEONE_XXX= 键值解析
+        result = find_status_object(text)
 
     # 解析失败时把日志尾部打出来，否则无法从 Actions 页面判断原因。
     if result is None:
-        # 兜底：JSON 没找到，但日志里有Deploy Success 且能抓到 URL，
+        # 兜底：JSON 没找到，但日志里有 Deploy Success 且能抓到 URL，
         # 说明部署实际已成功，只是 CLI 输出格式与预期不符。
         url = salvage_url(text)
         if url:
@@ -72,7 +118,7 @@ def main():
                 fh.write(url)
             print("::notice title=部署成功（兜底）::{}".format(url))
             return 0
-        print("::error::部署输出中未找到合法 JSON，CLI 可能未正常启动")
+        print("::error::未能从 CLI 输出中判定部署结果（既无 JSON 也无 Deploy Success）")
         print("---- deploy-output.log 末尾 30 行 ----")
         for line in text.strip().splitlines()[-30:]:
             print(line)
