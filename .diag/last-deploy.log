@@ -1,0 +1,18 @@
+[90m[cli][0m[32m[✔] [0mUsing provided API token for deployment...
+[90m[cli][0m[32m[✔] [0mProject aihot-intel-board already exists. Using existing project.
+[90m[cli][0m[32m[✔] [0mDeploying ./dist to project aihot-intel-board (Production environment, global area)...
+[90m[cli][0m[36m Validating API endpoint...[0m
+[90m[cli][0m[32m[✔] [0mProject aihot-intel-board already exists. Using existing project.
+[90m[cli][0m[32m[✔] [0mUsing Project ID: makers-7xzljuh4zmss
+[90m[cli][0m[36m Uploading folder to EdgeOne COS...[0m
+[cli][Uploader] Uploading file: 100%
+[90m[cli][0m[32m[✔] [0mFile uploaded successfully
+[90m[cli][0m[32m[✔] [0mCreating deployment in Production environment...
+[90m[cli][0m[32m[✔] [0mCreated deployment with Deployment ID: dpzo8jgo8yii
+[90m[cli][0m[36m Waiting for deployment to complete...[0m
+[cli][DeployStatus] Deploying...
+[cli] Deployment in progress... (status: Process, elapsed: ~10s)
+[cli] Deployment in progress... (status: Process, elapsed: ~20s)
+[90m[cli][0m[32m[✔] [0mDeploy Success
+[90m[cli][0m[32m[✔] [0mDeploy URL: https://aihot-intel-board.edgeone.dev
+[90m[cli][0m[32m[✔] [0mConsole URL: https://console.tencentcloud.com/edgeone/pages/project/makers-7xzljuh4zmss/deployment/dpzo8jgo8yii
