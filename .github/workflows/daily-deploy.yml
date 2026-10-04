@@ -156,7 +156,18 @@ jobs:
             echo "| 指标 | 值 |"
             echo "|---|---|"
             echo "| 快照条目 | $N |"
-            echo "|其中国内 RSS | $RSS |"
+            echo "| 其中国内 RSS | $RSS |"
             echo "| 产物体积 | $(wc -c < aihot-intel.html) 字节 |"
             echo "| 访问地址 | $URL |"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # 无论成败都上传日志，避免只能靠管理员权限进日志页排查
+      - name: 上传部署日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-logs
+          path: |
+            deploy-output.log
+            DEPLOY_URL
+          if-no-files-found: ignore

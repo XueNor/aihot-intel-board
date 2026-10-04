@@ -63,7 +63,15 @@ jobs:
             } >> report.md
           fi
 
-      - name: 提交诊断报告到 Issue
+      - name: 上传诊断报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-diagnosis-report
+          path: report.md
+          if-no-files-found: warn
+
+      - name: 提交诊断报告到 Issue（失败不影响诊断）
+        continue-on-error: true
         run: |
           {
             echo "### 产物信息"
