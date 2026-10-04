@@ -10,11 +10,20 @@ tools/shot.mjs
 tools/verify.mjs
 .shots/
 
-# 过时文档（国内版手册，本项目用国际版）
-DEPLOY.md
+# 已移除的并行皮肤
+tpl-cassette.html
+
+# 纯文档（内容已存入本地 ZIP 归档，不进仓库）
+# 云端构建不需要它们，本地查阅直接看 ZIP 里的同名文件
+README.md
+DEV-LOG.md
+docs/
 
 # 本地源码归档（备份用，不进仓库）
 *.zip
+
+# 过时文档
+DEPLOY.md
 
 # 抓取中间产物
 data/raw_*.json
@@ -35,6 +44,3 @@ __pycache__/
 
 # 助手工作记忆（个人笔记，不进仓库）
 .workbuddy/
-
-# 保留：唯一快照（云端构建的输入与兜底数据源）
-!data/refreshed.json
