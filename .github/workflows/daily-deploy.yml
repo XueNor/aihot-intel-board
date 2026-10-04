@@ -1,14 +1,15 @@
 # 每日自动抓取并部署到 EdgeOne Pages
 #
-# 流程：cron 定时 → 装 Python → 跑 pack.py --fetch → 校验 → 上传 CDN
+# 流程：cron 定时 / push 触发 → 装 Python → 跑 pack.py --fetch → 校验 → 上传 CDN
 # 成本：公共仓库 Actions 免费额度无限，EdgeOne Pages 免费计划永久有效
 #
-# 需要在仓库 Settings → Secrets and variables → Actions 配置：
-#   EDGEONE_API_TOKEN  —— EdgeOne 控制台「API Token」页创建（必填）
-#   EDGEONE_SITE_NAME  —— 项目名，不填则用 intel-board（可选）
+# 前置条件：仓库 Settings → Secrets and variables → Actions 中存在名为
+#   BOARD 的 Secret，值为 EdgeOne 控制台「API Token」页创建的令牌。
+#   ⚠️ 变量名必须严格为 BOARD（全大写、无空格）。GitHub 对不存在的 Secret
+#   会静默返回空字符串，不报错——这个坑曾导致连续多次部署失败。
 #
-# 区域由Token 自带；EDGEONE_AREA 仅在需要显式指定时生效：
-#   global=国际版（邮箱注册，免备案） / overseas=海外 / china=国内版（需实名）
+# 站点名固定 aihot-intel-board（EdgeOne 上的实际项目名），
+# 加速区域 global（国际版，邮箱注册免备案）。
 #
 # 详细说明见 DEPLOY-international.md
 name: 每日情报看板更新
@@ -22,8 +23,9 @@ on:
     - cron: '0 1 * * *'
   workflow_dispatch:   # 支持手动触发
 
+# 只需读权限：检出代码 + 运行脚本，不写回仓库
 permissions:
-  contents: write   # 诊断日志要推到 diag-branch，需写权限
+  contents: read
 
 concurrency:
   group: intel-board-deploy
@@ -130,7 +132,6 @@ jobs:
             echo ""
             echo "- 站点名: $SITE_NAME"
             echo "- 区域: $EDGEONE_AREA"
-            echo "- Token 长度: ${#EDGEONE_API_TOKEN}"
             echo "- CLI 退出码: $CODE"
             echo ""
             echo '```'
