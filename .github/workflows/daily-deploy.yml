@@ -11,7 +11,7 @@
 # 站点名固定 aihot-intel-board（EdgeOne 上的实际项目名），
 # 加速区域 global（国际版，邮箱注册免备案）。
 #
-# 详细说明见 DEPLOY-international.md
+# 详细说明见 docs/DEPLOY-GUIDE.md 与 docs/DEPLOY-international.md
 name: 每日情报看板更新
 
 on:
