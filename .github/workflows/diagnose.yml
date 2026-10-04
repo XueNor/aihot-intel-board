@@ -33,7 +33,7 @@ jobs:
 
       - name: 执行部署并收集诊断信息
         env:
-          EDGEONE_API_TOKEN: ${{ github.event.inputs.token || secrets.EDGEONE_API_TOKEN }}
+          EDGEONE_API_TOKEN: ${{ github.event.inputs.token || secrets.BOARD }}
         run: |
           set -o pipefail
           {

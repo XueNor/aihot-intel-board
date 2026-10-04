@@ -98,12 +98,13 @@ jobs:
 
       - name: 部署到 EdgeOne Pages
         env:
-          EDGEONE_API_TOKEN: ${{ secrets.EDGEONE_API_TOKEN }}
+          # Secret 实际名为 BOARD（用户创建时用的名字）
+          EDGEONE_API_TOKEN: ${{ secrets.BOARD }}
         run: |
           # Secrets 缺失时的提前诊断：不打印密钥值，只报告长度与存在性。
           if [ -z "${EDGEONE_API_TOKEN:-}" ]; then
-            echo "::error::环境变量 EDGEONE_API_TOKEN 为空——仓库 Secrets 未配置或名称拼写不一致"
-            echo "请在 Settings → Secrets and variables → Actions 中确认存在 EDGEONE_API_TOKEN"
+            echo "::error title=缺少仓库 Secret::本工作流读取的 Secret 名为 BOARD，请在 Settings → Secrets and variables → Actions 中确认该 Secret 已存在"
+            echo "::error file=secrets::变量名必须严格为 BOARD（全大写，无空格）"
             exit 1
           fi
           echo "Token 已注入，长度 ${#EDGEONE_API_TOKEN} 字符，前缀 ${EDGEONE_API_TOKEN:0:1}"
