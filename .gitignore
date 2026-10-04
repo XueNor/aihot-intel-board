@@ -10,6 +10,9 @@ tools/shot.mjs
 tools/verify.mjs
 .shots/
 
+# 过时文档（国内版手册，本项目用国际版）
+DEPLOY.md
+
 # 抓取中间产物
 data/raw_*.json
 data/merged.json
