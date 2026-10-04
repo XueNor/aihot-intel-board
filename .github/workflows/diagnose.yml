@@ -1,0 +1,78 @@
+name: 部署诊断
+
+# 独立诊断流程：跑一次部署并把完整输出写进 Issue，
+# 这样无需 Actions 日志页权限也能读到失败原因。
+# 手动触发：Actions → 部署诊断 → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      token:
+        description: 'EdgeOne API Token（留空则用仓库 Secret）'
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 准备产物
+        run: |
+          python pack.py --fetch
+          mkdir -p dist && cp aihot-intel.html dist/index.html
+
+      - name: 执行部署并收集诊断信息
+        env:
+          EDGEONE_API_TOKEN: ${{ github.event.inputs.token || secrets.EDGEONE_API_TOKEN }}
+        run: |
+          set -o pipefail
+          {
+            echo "## 部署诊断 $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "- 提交: \`${{ github.sha }}\`"
+            echo "- Node: $(node -v) / npm: $(npm -v)"
+            echo "- 工作流传入的 Token 长度: \${#EDGEONE_API_TOKEN}"
+            echo ""
+          } >> report.md
+
+          if [ -z "${EDGEONE_API_TOKEN:-}" ]; then
+            echo "### 结论" >> report.md
+            echo "Token 为空——仓库 Secret 未配置。" >> report.md
+          else
+            npx --yes edgeone@latest makers deploy ./dist \
+              -n aihot-intel-board \
+              -t "$EDGEONE_API_TOKEN" \
+              -a global \
+              2>&1 | tee deploy.log
+            echo "CLI_EXIT=${PIPESTATUS[0]}" >> deploy.log
+            {
+              echo "### CLI 原始输出"
+              echo '```'
+              cat deploy.log
+              echo '```'
+            } >> report.md
+          fi
+
+      - name: 提交诊断报告到 Issue
+        run: |
+          {
+            echo "### 产物信息"
+            echo "- 产物体积: $(wc -c < aihot-intel.html) 字节"
+            echo "- 快照条目: $(python -c "import json;print(len(json.load(open('data/refreshed.json',encoding='utf-8'))))")"
+          } >> report.md
+          # 用固定标题避免重复创建，-c 评论到上一次
+          gh issue create \
+            --title "部署诊断 $(date -u '+%Y%m%d-%H%M')" \
+            --body-file report.md \
+            --label diagnostic || \
+          gh issue comment $(gh issue list --limit 1 --json number -q '.[0].number') --body-file report.md
