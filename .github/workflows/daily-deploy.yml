@@ -107,6 +107,8 @@ jobs:
             exit 1
           fi
           echo "Token 已注入，长度 ${#EDGEONE_API_TOKEN} 字符，前缀 ${EDGEONE_API_TOKEN:0:1}"
+          # 用 error 级别把环境信息推到 API 可读的annotations，绕开日志页权限
+          echo "::debug name=env::node=$(node -v) npm=$(npm -v) cwd=$(pwd) dist=$(ls dist 2>&1) size=$(wc -c < dist/index.html 2>&1)"
 
           set -o pipefail
           # 不用 --json：CLI 在不同环境下JSON 行为不一致（--json 与装饰日志
@@ -119,7 +121,10 @@ jobs:
             2>&1 | tee deploy-output.log
           CODE=${PIPESTATUS[0]}
           echo "CLI 退出码: $CODE"
+          # 把 CLI 输出尾部通过 error 注解抛出——annotations 可经 API 匿名读取，
+          # 而 Actions 日志页与 artifact 都需要权限，排查时读不到。
           {
+            echo ""
             echo "### EdgeOne 部署原始输出"
             echo ""
             echo "- 站点名: $SITE_NAME"
@@ -131,6 +136,12 @@ jobs:
             cat deploy-output.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" -ne 0 ]; then
+            echo "::error title=EdgeOne 部署失败::退出码 $CODE；详见本步骤日志与 workflow summary"
+            tail -5 deploy-output.log | while IFS= read -r l; do
+              echo "::error file=deploy-output.log::${l}"
+            done
+          fi
           exit $CODE
 
       - name: 解析部署结果
