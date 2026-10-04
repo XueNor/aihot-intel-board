@@ -173,32 +173,22 @@ jobs:
             echo "| 访问地址 | $URL |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # 无论成败都把日志推到仓库分支，无需任何额外权限即可读取。
-      # Artifact 在公共仓库需登录态才能下载，日志页需管理员权限，都不便排查。
-      - name: 上传部署日志到诊断分支
+      # 无论成败都把关键信息写进 workflow summary——
+      # Actions 日志页需管理员权限，artifact 需登录态，summary 最易读。
+      - name: 诊断信息
         if: always()
         run: |
-          if [ -f deploy-output.log ]; then
-            mkdir -p .diag
-            cp deploy-output.log .diag/last-deploy.log
-            {
-              echo "# 部署诊断报告"
-              echo ""
-              echo "- 时间: $(date -u '+%Y-%m-%d %H:%M UTC')"
-              echo "- 提交: ${{ github.sha }}"
-              echo "- 部署结果: $([ -f DEPLOY_URL ] && echo 成功 || echo 失败)"
+          {
+            echo ""
+            echo "### 排查信息"
+            echo ""
+            echo "- Node: $(node -v) / npm: $(npm -v)"
+            echo "- 站点名: $SITE_NAME / 区域: $EDGEONE_AREA"
+            if [ -f deploy-output.log ]; then
+              echo "- CLI 输出行数: $(wc -l < deploy-output.log)"
               echo ""
               echo '```'
-              cat deploy-output.log
+              tail -20 deploy-output.log
               echo '```'
-            } > .diag/README.md
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git fetch origin diag-branch --depth=1 2>/dev/null || true
-            git checkout -B diag-branch
-            git add -f .diag/ 2>/dev/null
-            git commit -q -m "chore: 更新部署诊断（${GITHUB_RUN_NUMBER}）" || echo "无变更"
-            git push -f origin diag-branch
-          else
-            echo "无deploy-output.log，跳过"
-          fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
