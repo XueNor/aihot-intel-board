@@ -120,34 +120,9 @@ jobs:
             echo "::error::未拿到部署输出文件"
             exit 1
           fi
-          # CLI 在 --json 模式下仍会打印 [cli] 日志行，不能假定 JSON 一定是最后一行。
-          # 反向遍历逐行尝试，找到第一个能成功解析的 JSON 对象。
-          if ! python -c "
-import json, sys
-d = None
-for ln in reversed(open('deploy-output.log', encoding='utf-8', errors='replace').read().splitlines()):
-    ln = ln.strip()
-    if ln.startswith('{') and ln.endswith('}'):
-        try:
-            d = json.loads(ln)
-            break
-        except Exception:
-            pass
-if not d:
-    print('::error::部署输出中未找到合法 JSON')
-    sys.exit(1)
-if d.get('status') != 'success':
-    print('::error::部署失败: ' + str(d.get('error', d.get('status'))))
-    sys.exit(1)
-url = d.get('url', '')
-open('DEPLOY_URL', 'w', encoding='utf-8').write(url)
-print('::notice title=部署成功::' + url)
-print('项目 ID: ' + str(d.get('projectId', '')))
-print('部署 ID: ' + str(d.get('deploymentId', '')))
-"; then
-            echo "::error::解析部署结果失败，请查看上方部署输出"
-            exit 1
-          fi
+          # 解析逻辑放在 tools/parse_deploy.py，不内联在 YAML 里——
+          # 多行 Python 写在块标量中会因缩进层级出错，且难以调试。
+          python tools/parse_deploy.py
 
       - name: 记录摘要
         if: always()
