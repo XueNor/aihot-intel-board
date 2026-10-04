@@ -34,11 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # GitHub Actions 表达式不支持 || 回退，需分步处理：
-      # 未配置 EDGEONE_SITE_NAME 时用默认名 intel-board
-      SITE_NAME: intel-board
-      # 可选：覆盖默认站点名
-      EDGEONE_SITE_NAME: ${{ secrets.EDGEONE_SITE_NAME }}
+      # 站点名固定为 EdgeOne 上实际存在的项目名。
+      # 不再从 EDGEONE_SITE_NAME 读取——Secret 未配置时会落到默认值
+      # intel-board，与真实项目名不符导致部署失败。
+      SITE_NAME: aihot-intel-board
       # 加速区域：global=国际版（邮箱注册免备案）/ overseas=海外 / china=国内版
       # 令牌自带区域信息，此项仅在需要显式指定时覆盖
       EDGEONE_AREA: global
@@ -93,11 +92,9 @@ jobs:
       # 同时避免把抓取脚本暴露在公开站点上
       - name: 准备部署目录
         run: |
-          # 站点名优先取仓库密钥，未配置则用默认名
-          if [ -n "$EDGEONE_SITE_NAME" ]; then SITE_NAME="$EDGEONE_SITE_NAME"; fi
-          echo "SITE_NAME=$SITE_NAME" >> "$GITHUB_ENV"
           mkdir -p dist
           cp aihot-intel.html dist/index.html
+          ls -la dist/
 
       - name: 部署到 EdgeOne Pages
         env:
