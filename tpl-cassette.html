@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科技情报看板 — AI HOT</title>
+<style>
+/* ============================================================
+   卡带未来主义 CASSETTE FUTURISM
+   1980s 未来幻视：CRT 扫描线、霓虹辉光、合成波网格、
+   磁带卷盘、字���位故障红蓝错位。
+   纯 CSS 绘制，不引用任何外部资源。
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ---------- 暗色（主视觉：夜航驾驶舱） ---------- */
+:root{
+  --paper:#0A0520; --ink:#F2ECFF; --grey:#9C8FD0; --line:#2C1E5E;
+  --red:#FF2D95;              /* 兼容旧规则：等价霓虹品红 */
+  --mag:#FF2D95;              /* 霓虹品红 */
+  --cy:#00E8FF;               /* 荧光青 */
+  --yl:#FFD400;               /* 警示黄 */
+  --glo:color-mix(in srgb,var(--mag) 60%,transparent);
+  --glo-c:color-mix(in srgb,var(--cy) 55%,transparent);
+  --f:"Bahnschrift","DIN Alternate","Arial Narrow",
+      "Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  --m:"Consolas","SF Mono","IBM Plex Mono",Menlo,monospace;
+}
+/* ---------- 亮色（日光模式：奶油卡纸） ---------- */
+html[data-theme="light"]{
+  --paper:#F2E8D5; --ink:#221446; --grey:#73659B; --line:#C9B896;
+  --red:#D6006E; --mag:#D6006E; --cy:#00708F; --yl:#A8760A;
+  --glo:color-mix(in srgb,var(--mag) 30%,transparent);
+  --glo-c:color-mix(in srgb,var(--cy) 26%,transparent);
+}
+html{scroll-behavior:smooth;scroll-padding-top:56px}
+body{font-family:var(--f);background:var(--paper);color:var(--ink);
+  line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  font-variant-numeric:tabular-nums;position:relative}
+
+/* ---------- CRT 氛围层：辉光 + 扫描线 + 噪点 ---------- */
+/* 顶部霓虹泛光，模拟显像管中心亮、边缘暗 */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(120% 70% at 50% -10%,color-mix(in srgb,var(--mag) 22%,transparent),transparent 60%),
+    radial-gradient(90% 55% at 12% 8%,color-mix(in srgb,var(--cy) 16%,transparent),transparent 62%),
+    radial-gradient(80% 50% at 88% 4%,color-mix(in srgb,var(--yl) 10%,transparent),transparent 60%);
+  opacity:.85}
+/* 扫描线 + 颗粒噪点：等高 repeating 渐变叠加 */
+body::after{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:
+    repeating-linear-gradient(180deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;opacity:.55}
+html[data-theme="dark"] body::after{opacity:.7}
+::selection{background:var(--mag);color:#0A0520}
+a{color:inherit;text-decoration:none}
+mark{background:var(--mag);color:#0A0520;padding:0 3px;font-weight:700;
+  border-radius:2px;box-shadow:0 0 10px var(--glo)}
+
+/* ---------- 栅格骨架 ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+.rule{height:1px;background:var(--line);opacity:.9}
+.rule.thick{height:3px}
+
+/* ---------- 顶栏：磁带机面板 ---------- */
+header{position:sticky;top:0;z-index:50;
+  background:color-mix(in srgb,var(--paper) 86%,transparent);
+  backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 color-mix(in srgb,var(--mag) 40%,transparent),
+             0 10px 34px rgba(0,0,0,.5)}
+.bar{display:flex;align-items:stretch;height:54px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;
+  letter-spacing:.02em;font-size:15px;white-space:nowrap}
+/* 纯 CSS 磁带：外壳 + 双卷盘 + 磁带窗 */
+.brand::before{content:'';width:38px;height:24px;flex-shrink:0;
+  border:1.5px solid var(--cy);border-radius:3px;position:relative;
+  background:
+    radial-gradient(circle 4.5px at 12px 9px,var(--cy) 0 3px,transparent 3.6px),
+    radial-gradient(circle 4.5px at 26px 9px,var(--cy) 0 3px,transparent 3.6px),
+    linear-gradient(180deg,transparent 0 52%,
+      color-mix(in srgb,var(--cy) 30%,transparent) 52% 60%,transparent 60% 74%,
+      color-mix(in srgb,var(--cy) 30%,transparent) 74% 82%,transparent 82%),
+    linear-gradient(180deg,color-mix(in srgb,var(--cy) 7%,transparent),transparent);
+  box-shadow:0 0 12px var(--glo-c),inset 0 0 10px color-mix(in srgb,var(--cy) 12%,transparent)}
+/* 卷盘缓慢转动，呼应"走带中" */
+.brand::after{content:'';position:absolute;width:0;height:0}
+.brand em{font-style:normal;color:var(--mag);
+  text-shadow:0 0 12px var(--glo);animation:flick 3.4s steps(1) infinite}
+/* 走带计数器窗 */
+.brand .win{font-family:var(--m);font-size:10.5px;color:var(--cy);
+  letter-spacing:.1em;padding:3px 8px;margin-left:4px;
+  border:1px solid color-mix(in srgb,var(--cy) 45%,transparent);border-radius:2px;
+  background:color-mix(in srgb,var(--cy) 8%,transparent);
+  text-shadow:0 0 8px var(--glo-c)}
+.tools{display:flex;align-items:center;gap:0;margin-left:auto;
+  border-left:1px solid var(--line)}
+/* 机械按键：立体凹陷 + 按下反馈 */
+.btn{height:100%;padding:0 15px;border:0;cursor:pointer;
+  font-family:var(--m);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--grey);border-right:1px solid var(--line);transition:.18s;
+  box-shadow:inset 0 0 0 transparent}
+.btn:hover{color:var(--cy);background:color-mix(in srgb,var(--cy) 10%,transparent);
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.4),0 0 14px var(--glo-c);text-shadow:0 0 10px var(--glo-c)}
+.btn[disabled]{opacity:.4;cursor:wait}
+
+/* ---------- 报头 ---------- */
+.mast{padding:46px 0 0}
+.mast-top{display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap}
+.mast-l{flex:1;min-width:300px}
+.kicker{font-family:var(--m);font-size:10.5px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--yl);margin-bottom:16px;
+  text-shadow:0 0 12px color-mix(in srgb,var(--yl) 45%,transparent)}
+.kicker::before{content:'● ';color:var(--mag);
+  text-shadow:0 0 10px var(--glo);animation:blink 1.4s steps(1) infinite}
+/* 主标题：霓虹辉光 + 字符红蓝错位，模拟信号色散 */
+h1{font-size:clamp(2.7rem,8vw,6rem);line-height:.9;letter-spacing:-.01em;
+  font-weight:700;text-transform:uppercase;color:var(--ink);
+  text-shadow:
+    0 0 24px color-mix(in srgb,var(--mag) 42%,transparent),
+    0 0 60px color-mix(in srgb,var(--mag) 20%,transparent),
+    2px 0 color-mix(in srgb,var(--cy) 34%,transparent),
+    -2px 0 color-mix(in srgb,var(--mag) 30%,transparent)}
+h1 .ln{display:block}
+.mast-r{width:300px;flex-shrink:0;padding-top:6px}
+/* 机读参数窗 */
+.mast-r dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;
+  font-size:11.5px;margin-bottom:16px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:3px;
+  background:color-mix(in srgb,var(--ink) 4%,transparent);
+  box-shadow:inset 0 0 22px color-mix(in srgb,var(--cy) 7%,transparent)}
+.mast-r dt{font-family:var(--m);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--grey)}
+.mast-r dd{text-align:right;font-weight:700;color:var(--cy);text-shadow:0 0 10px var(--glo-c)}
+
+/* ---------- 指标带：仪表盘 ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  border:1px solid var(--line);border-radius:4px;margin-top:36px;overflow:hidden;
+  box-shadow:0 0 34px color-mix(in srgb,var(--mag) 12%,transparent),
+             inset 0 0 40px color-mix(in srgb,var(--cy) 5%,transparent)}
+.stat{border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:15px 16px;position:relative;transition:.2s;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--mag) 5%,transparent),transparent)}
+.stat:hover{background:color-mix(in srgb,var(--cy) 9%,transparent)}
+.stat .k{font-family:var(--m);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--grey);margin-bottom:7px}
+/* 数值用等宽，模拟数码管 */
+.stat .v{font-family:var(--m);font-size:2rem;font-weight:700;line-height:1;
+  color:var(--cy);text-shadow:0 0 16px var(--glo-c)}
+.stat .v small{font-size:.9rem;font-weight:400;color:var(--grey);
+  letter-spacing:0;text-shadow:none}
+.stat .x{font-size:10.5px;color:var(--grey);margin-top:6px}
+
+/* ---------- 主体 ---------- */
+main{padding:0 0 64px}
+.pane{display:none}
+.pane.on{display:block}
+
+/* ---------- 时间流：磁带轨道 ---------- */
+.tl{margin-top:34px}
+.tl-row{display:grid;grid-template-columns:112px 1fr;gap:0;
+  border-top:1px solid var(--line);position:relative}
+/* 首行：品红高亮，代表"最新"起点 */
+.tl-row.newest{border-top:2px solid var(--mag);
+  box-shadow:0 -8px 30px color-mix(in srgb,var(--mag) 12%,transparent)}
+.tl-day{border-right:1px solid var(--line);padding:16px 14px 16px 0;position:relative}
+.tl-day .d{font-family:var(--m);font-size:1.5rem;font-weight:700;line-height:1;
+  color:var(--ink);letter-spacing:-.02em}
+.tl-day .w{font-family:var(--m);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--grey);margin-top:5px}
+.tl-day .rel{font-family:var(--m);font-size:9.5px;color:var(--cy);margin-top:7px;
+  display:inline-block;padding:1px 5px;border-radius:2px;
+  border:1px solid color-mix(in srgb,var(--cy) 30%,transparent)}
+.tl-day.today .d{color:var(--mag);text-shadow:0 0 16px var(--glo)}
+/* 「最新」跑马灯标签 */
+.tl-row.newest .tl-day::before{content:"最新";display:block;font-family:var(--m);
+  font-size:8.5px;letter-spacing:.16em;color:#0A0520;background:var(--mag);
+  padding:2px 6px;margin-bottom:8px;width:max-content;border-radius:2px;
+  box-shadow:0 0 14px var(--glo);animation:flick 2.6s steps(1) infinite}
+.tl-body{padding:16px 0 16px 22px}
+.tl-count{font-family:var(--m);font-size:10.5px;color:var(--grey);margin-bottom:13px;
+  letter-spacing:.06em}
+.tl-items{display:flex;flex-direction:column;gap:14px}
+.tl-it{display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:baseline;
+  padding-bottom:14px;border-bottom:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+.tl-it:last-child{border-bottom:0;padding-bottom:0}
+.tl-rank{font-family:var(--m);font-size:10.5px;color:var(--mag);padding-top:2px;
+  text-shadow:0 0 10px var(--glo)}
+.tl-t{font-size:14.5px;font-weight:600;line-height:1.4}
+.tl-t a:hover{color:var(--cy);text-shadow:0 0 12px var(--glo-c)}
+.tl-m{font-family:var(--m);font-size:10px;color:var(--grey);white-space:nowrap;
+  text-align:right;line-height:1.5}
+.tl-s{grid-column:2/-1;font-size:12px;color:var(--grey);margin-top:-4px}
+.tl-tags{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.tl-tags .tg{font-family:var(--m);font-size:9px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 7px;border-radius:2px;
+  border:1px solid color-mix(in srgb,var(--cy) 32%,transparent);
+  color:var(--cy);background:color-mix(in srgb,var(--cy) 7%,transparent)}
+.tl-tags .tg.t1{border-color:var(--mag);color:var(--mag);
+  background:color-mix(in srgb,var(--mag) 9%,transparent);
+  box-shadow:0 0 10px color-mix(in srgb,var(--mag) 20%,transparent)}
+
+/* ---------- 主题综述：磁带卡匣 ---------- */
+.sec-head{display:flex;align-items:baseline;gap:16px;margin:54px 0 0;
+  padding-bottom:11px;border-bottom:2px solid var(--line);position:relative}
+.sec-head::after{content:'';position:absolute;left:0;bottom:-2px;width:84px;height:2px;
+  background:var(--mag);box-shadow:0 0 14px var(--glo)}
+.sec-head h2{font-size:1.5rem;font-weight:700;letter-spacing:.02em;
+  text-transform:uppercase;text-shadow:0 0 16px color-mix(in srgb,var(--cy) 26%,transparent)}
+.sec-head .idx{font-family:var(--m);font-size:11px;color:var(--mag);
+  text-shadow:0 0 12px var(--glo)}
+.sec-head .meta{margin-left:auto;font-family:var(--m);font-size:10.5px;
+  color:var(--grey);letter-spacing:.06em}
+
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+/* 卡匣：圆角外壳 + 顶部色条 + 内嵌阴影 */
+.th{border:1px solid var(--line);border-radius:5px;padding:18px 18px 8px;
+  position:relative;overflow:hidden;transition:.22s;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ink) 5%,transparent),transparent 40%);
+  box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent)}
+.th::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--mag),var(--cy),var(--yl));
+  box-shadow:0 0 12px var(--glo)}
+.th:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--cy) 50%,transparent);
+  box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 30px color-mix(in srgb,var(--cy) 16%,transparent)}
+.th h3{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding-bottom:9px;margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.th h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--mag);flex-shrink:0;
+  box-shadow:0 0 12px var(--glo);animation:pulse 2.2s ease-in-out infinite}
+.th h3 .c{margin-left:auto;font-family:var(--m);font-size:10px;color:var(--grey);font-weight:400}
+.th ol{list-style:none;counter-reset:t}
+.th li{counter-increment:t;padding:11px 0;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.th li:last-child{border-bottom:0;padding-bottom:0}
+.th li .h{font-size:13.5px;font-weight:600;line-height:1.42;margin-bottom:5px}
+.th li .h a:hover{color:var(--cy);text-shadow:0 0 12px var(--glo-c)}
+.th li .m{font-family:var(--m);font-size:9.5px;color:var(--grey);letter-spacing:.03em}
+.th li .m b{color:var(--mag);font-weight:400;text-shadow:0 0 10px var(--glo)}
+
+/* ---------- 关键事件 ---------- */
+.sel-head{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;
+  margin:36px 0 0;padding-bottom:12px;border-bottom:2px solid var(--line)}
+.sel-head h2{font-size:1.5rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;
+  text-shadow:0 0 16px color-mix(in srgb,var(--cy) 26%,transparent)}
+.sel-head p{font-size:12px;color:var(--grey);margin-top:6px;max-width:62ch}
+.filterbox{font-family:var(--m);font-size:10px;color:var(--grey);text-align:right;
+  line-height:1.75;white-space:nowrap}
+.filterbox b{color:var(--mag);text-shadow:0 0 10px var(--glo)}
+
+.sel{margin-top:0}
+/* 每条关键事件 = 一盒磁带 */
+.sel-row{display:grid;grid-template-columns:96px 1fr;
+  border:1px solid var(--line);border-radius:5px;margin-bottom:16px;
+  overflow:hidden;position:relative;transition:.22s;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--mag) 4%,transparent),transparent 30%);
+  box-shadow:0 10px 30px rgba(0,0,0,.36)}
+.sel-row:hover{border-color:color-mix(in srgb,var(--mag) 55%,transparent);
+  box-shadow:0 14px 38px rgba(0,0,0,.46),0 0 28px color-mix(in srgb,var(--mag) 14%,transparent)}
+.sel-n{border-right:1px solid var(--line);padding:22px 16px;position:relative;
+  background:color-mix(in srgb,var(--mag) 6%,transparent)}
+/* 序号做成走带轮毂 */
+.sel-n .big{font-family:var(--m);font-size:2.5rem;font-weight:700;line-height:.9;
+  color:var(--mag);text-shadow:0 0 20px var(--glo),2px 0 var(--cy)}
+.sel-n .rk{font-family:var(--m);font-size:9.5px;color:var(--grey);margin-top:10px;
+  letter-spacing:.06em;line-height:1.5}
+.sel-b{padding:22px 22px 22px 24px;min-width:0}
+.sel-t{font-size:1.2rem;font-weight:700;line-height:1.32;letter-spacing:0;margin-bottom:10px}
+.sel-t a:hover{color:var(--cy);text-shadow:0 0 14px var(--glo-c)}
+.sel-m{display:flex;flex-wrap:wrap;gap:8px 14px;font-family:var(--m);
+  font-size:10.5px;color:var(--grey);margin-bottom:12px;letter-spacing:.02em}
+.sel-m .src{color:var(--ink);font-weight:600}
+.badge{display:inline-block;font-family:var(--m);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 8px;border-radius:2px;
+  border:1px solid color-mix(in srgb,var(--cy) 40%,transparent);
+  color:var(--cy);background:color-mix(in srgb,var(--cy) 8%,transparent)}
+.badge.t1{border-color:var(--mag);color:var(--mag);
+  background:color-mix(in srgb,var(--mag) 10%,transparent);
+  box-shadow:0 0 10px color-mix(in srgb,var(--mag) 22%,transparent)}
+.sel-s{font-size:13.5px;line-height:1.62;max-width:82ch}
+/* 收录依据：CRT 提示条 */
+.sel-why{margin-top:13px;padding:11px 14px;border-radius:3px;
+  border-left:2px solid var(--mag);
+  background:color-mix(in srgb,var(--mag) 7%,transparent);
+  font-size:11.5px;line-height:1.65}
+.sel-why .lb{font-family:var(--m);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--mag);display:block;margin-bottom:6px;
+  text-shadow:0 0 10px var(--glo)}
+.sel-why .b2{color:var(--grey);margin-top:4px;display:block}
+.sel-l{margin-top:13px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.sel-l a{font-family:var(--m);font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--cy);border-bottom:1px solid transparent;
+  padding-bottom:2px;transition:.18s}
+.sel-l a:hover{color:var(--mag);border-color:var(--mag);text-shadow:0 0 10px var(--glo)}
+
+/* ---------- 剔除清单 ---------- */
+.drop{margin-top:44px}
+.drop summary{cursor:pointer;font-family:var(--m);font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--grey);padding:12px 0;
+  border-top:1px solid var(--line);list-style:none;display:flex;align-items:center;gap:9px}
+.drop summary::-webkit-details-marker{display:none}
+.drop summary::before{content:"+";font-size:14px;color:var(--mag);
+  text-shadow:0 0 10px var(--glo)}
+.drop[open] summary::before{content:"−"}
+.drop summary:hover{color:var(--ink)}
+.drop-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
+.drop-tbl th{text-align:left;font-family:var(--m);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--grey);padding:8px 12px 8px 0;
+  border-bottom:1px solid var(--line);font-weight:400}
+.drop-tbl td{padding:9px 12px 9px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 45%,transparent);
+  vertical-align:top}
+.drop-tbl td.r{font-family:var(--m);font-size:9.5px;white-space:nowrap;color:var(--mag)}
+.drop-tbl td.w{color:var(--grey);font-size:11px;white-space:nowrap}
+
+/* ---------- 回到最新：机械按钮 ---------- */
+.totop{display:block;margin:28px auto 0;padding:10px 22px;border-radius:3px;
+  border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 5%,transparent);
+  font-family:var(--m);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink);cursor:pointer;transition:.18s;
+  box-shadow:0 3px 0 color-mix(in srgb,var(--line) 90%,transparent),0 6px 16px rgba(0,0,0,.4)}
+.totop:hover{border-color:var(--mag);color:var(--mag);text-shadow:0 0 10px var(--glo);
+  box-shadow:0 3px 0 var(--mag),0 0 22px var(--glo);transform:translateY(-1px)}
+.totop[hidden]{display:none}
+
+/* ---------- 状态 ---------- */
+.status{display:flex;align-items:center;gap:12px;padding:14px 0;
+  font-family:var(--m);font-size:11px;color:var(--grey);letter-spacing:.04em}
+.spin{width:10px;height:10px;border:1.5px solid var(--line);border-top-color:var(--mag);
+  border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0;
+  box-shadow:0 0 10px var(--glo)}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{color:var(--mag);font-family:var(--m);font-size:11.5px;padding:16px 0;line-height:1.7}
+.err code{background:color-mix(in srgb,var(--ink) 8%,transparent);padding:2px 5px;
+  font-size:11px;border-radius:2px}
+
+/* ---------- 页脚 ---------- */
+footer{border-top:2px solid var(--line);padding:26px 0 46px;
+  font-size:11px;color:var(--grey);line-height:1.75;position:relative}
+footer::before{content:'';position:absolute;top:-2px;left:0;width:110px;height:2px;
+  background:var(--cy);box-shadow:0 0 14px var(--glo-c)}
+footer .fg{display:flex;flex-wrap:wrap;gap:8px 28px;margin-bottom:16px}
+footer b{color:var(--ink);font-weight:700}
+footer a{color:var(--cy);border-bottom:1px solid color-mix(in srgb,var(--cy) 40%,transparent)}
+footer a:hover{color:var(--mag);border-color:var(--mag)}
+footer .fm{font-family:var(--m);font-size:10px;letter-spacing:.05em;
+  display:flex;flex-wrap:wrap;gap:6px 20px;padding-top:14px;
+  border-top:1px solid var(--line)}
+
+/* ---------- 动效 ---------- */
+@keyframes blink{0%,60%{opacity:1}61%,100%{opacity:.25}}
+@keyframes flick{0%,92%{opacity:1}93%{opacity:.35}94%{opacity:1}97%{opacity:.5}98%{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.82)}}
+/* 尊重系统减弱动效偏好 */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:1000px){
+  .mast-r{width:100%}
+  .tl-row{grid-template-columns:80px 1fr}
+  .tl-it{grid-template-columns:40px 1fr;gap:10px}
+  .tl-m{grid-column:2;margin-top:2px}
+  .sel-row{grid-template-columns:70px 1fr}
+}
+@media(max-width:720px){
+  .wrap{padding:0 16px}
+  .bar{height:auto;flex-wrap:wrap}
+  .tools{margin-left:auto}
+  .mast{padding:32px 0 0}
+  .sel-row{grid-template-columns:56px 1fr}
+  .sel-n{padding:18px 12px}
+  .sel-n .big{font-size:1.9rem}
+  .sel-b{padding:18px 16px}
+  .sel-t{font-size:1.05rem}
+  .sel-head{grid-template-columns:1fr}
+  .filterbox{text-align:left}
+  .drop-tbl thead{display:none}
+  .drop-tbl tr{display:block;padding:11px 0;
+    border-bottom:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+  .drop-tbl td{display:block;border:0;padding:2px 0}
+  .themes{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  h1{text-shadow:0 0 18px color-mix(in srgb,var(--mag) 34%,transparent),
+    0 0 40px color-mix(in srgb,var(--mag) 16%,transparent)}
+  /* 小屏关闭色散，避免细字发虚 */
+  h1,.sel-n .big{text-shadow:0 0 18px color-mix(in srgb,var(--mag) 34%,transparent)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <span class="brand">INTEL<em>.</em>BOARD
+      <span class="win" id="winLabel">近 5 日</span></span>
+    <span class="tools">
+      <button class="btn" id="btnReload" title="重新拉取数据">↻ 刷新</button>
+      <button class="btn" id="btnTheme" title="切换明暗">◐</button>
+    </span>
+  </div>
+</header>
+
+<div class="wrap mast">
+  <div class="mast-top">
+    <div class="mast-l">
+      <div class="kicker">AI HOT · 科技情报 · 每日倒序更新</div>
+      <h1><span class="ln">Five-Day</span><span class="ln">Intelligence</span></h1>
+    </div>
+    <div class="mast-r">
+      <dl>
+        <dt>数据源</dt><dd>AI HOT + 国内 RSS</dd>
+        <dt>时间口径</dt><dd>Asia/Shanghai</dd>
+        <dt>更新</dt><dd id="mUpd">加载中</dd>
+        <dt>关键词</dt><dd id="mKw">15</dd>
+      </dl>
+      <div class="filterbox" id="mStat">—</div>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<main class="wrap">
+  <div class="status" id="status"><span class="spin"></span><span id="statusTx">正在连接 AI HOT…</span></div>
+  <div id="err" hidden></div>
+
+  <section class="pane on" id="pane-flow">
+    <div class="sec-head">
+      <span class="idx">01</span>
+      <h2>事件时间流</h2>
+      <span class="meta" id="flowMeta"></span>
+    </div>
+    <div class="tl" id="timeline"></div>
+    <button class="totop" id="btnTop" title="回到最新内容">↑ 回到最新</button>
+
+    <div class="sec-head">
+      <span class="idx">02</span>
+      <h2>主题综述</h2>
+      <span class="meta" id="themeMeta">按影响力归类</span>
+    </div>
+    <div class="themes" id="themes"></div>
+
+    <div class="sel-head">
+      <div>
+        <h2 id="topTitle">关键事件</h2>
+        <p>已过滤重复报道、营销软文与未经证实的社媒消息；按「重要性 × 可信度」排序。
+           每条标注判断依据，未达标准的不予收录。</p>
+      </div>
+      <div class="filterbox" id="topFilter"></div>
+    </div>
+    <div class="sel" id="topList"></div>
+    <details class="drop" id="dropBox">
+      <summary>已剔除条目 <span id="dropN"></span></summary>
+      <table class="drop-tbl">
+        <thead><tr><th>标题</th><th>剔除原因</th><th>说明</th></tr></thead>
+        <tbody id="dropBody"></tbody>
+      </table>
+    </details>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="fg">
+    <span><b>数据来源</b> AI HOT <a href="https://aihot.virxact.com" target="_blank"
+      rel="noopener noreferrer">aihot.virxact.com</a> 匿名只读 v1 API</span>
+    <span><b>时间口径</b> 默认 timeline：原文 72 小时内收录按收录时间，超期回填归位原文发布日</span>
+    <span><b>排序</b> 可信度权重 × 编辑部评分 × 新鲜度系数</span>
+  </div>
+  <div class="fg">
+    <span>摘要为自动压缩，<b>请以原文链接为准</b>；第三方原文版权归原作者所有。</span>
+  </div>
+  <div class="fm">
+    <span id="fTime">—</span><span id="fPool">—</span><span id="fMode">—</span>
+    <span>本页直连 API 读取，打开即最新；亦可离线留存快照</span>
+  </div>
+</footer>
+
+<script>
+/*__CORE__*/
+/*__APP__*/
+</script>
+</body>
+</html>

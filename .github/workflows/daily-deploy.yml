@@ -1,0 +1,138 @@
+# 每日自动抓取并部署到 EdgeOne Pages
+#
+# 流程：cron 定时 → 装 Python → 跑 pack.py --fetch → 校验 → 上传 CDN
+# 成本：公共仓库 Actions 免费额度无限，EdgeOne Pages 免费计划永久有效
+#
+# 需要在仓库 Settings → Secrets and variables → Actions 配置：
+#   EDGEONE_API_TOKEN  —— EdgeOne 控制台「API Token」页创建（必填）
+#   EDGEONE_SITE_NAME  —— 项目名，不填则用 intel-board（可选）
+#
+# 区域由Token 自带；EDGEONE_AREA 仅在需要显式指定时生效：
+#   global=国际版（邮箱注册，免备案） / overseas=海外 / china=国内版（需实名）
+#
+# 详细说明见 DEPLOY-international.md
+name: 每日情报看板更新
+
+on:
+  schedule:
+    # GitHub Actions 用 UTC，北京时间 9:00 = UTC 1:00
+    # 注释：每天 09:00 CST
+    - cron: '0 1 * * *'
+  workflow_dispatch:   # 支持手动触发
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intel-board-deploy
+  cancel-in-progress: false    # 上一轮没跑完就别打断，避免部署半成品
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # GitHub Actions 表达式不支持 || 回退，需分步处理：
+      # 未配置 EDGEONE_SITE_NAME 时用默认名 intel-board
+      SITE_NAME: intel-board
+      # 可选：覆盖默认站点名
+      EDGEONE_SITE_NAME: ${{ secrets.EDGEONE_SITE_NAME }}
+      # 加速区域：global=国际版（邮箱注册免备案）/ overseas=海外 / china=国内版
+      # 令牌自带区域信息，此项仅在需要显式指定时覆盖
+      EDGEONE_AREA: global
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # 脚本全用标准库（curl / json / xml.etree），无需任何 pip 安装。
+      # Ubuntu runner 自带 curl；缺失时补装。
+      - name: 确认 curl 可用
+        run: |
+          which curl || (sudo apt-get update && sudo apt-get install -y curl)
+
+      - name: 缓存 EdgeOne CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm/_npx
+          key: edgeone-cli-${{ runner.os }}-${{ hashFiles('.github/workflows/daily-deploy.yml') }}
+          restore-keys: edgeone-cli-${{ runner.os }}-
+
+      - name: 校验 CLI 可用（早期失败能立刻发现问题）
+        run: npx --yes edgeone@latest --version
+
+      - name: 抓取数据并打包
+        run: python pack.py --fetch
+
+      # 打包失败必须阻断部署：宁可让线上保持旧版本，也不要发布空页面
+      - name: 校验产物
+        run: |
+          set -e
+          test -f aihot-intel.html || { echo "::error::未生成 aihot-intel.html"; exit 1; }
+          SIZE=$(wc -c < aihot-intel.html)
+          echo "产物体积：$SIZE 字节"
+          if [ "$SIZE" -lt 20000 ]; then
+            echo "::error::产物过小（$SIZE 字节），抓取可能失败"
+            exit 1
+          fi
+          # 快照条目数校验。用 python -c 而非 heredoc：
+          # heredoc 在 YAML 块标量里会因缩进层级出错，单行更可靠。
+          if ! python -c "import json,sys; s=json.load(open('data/refreshed.json',encoding='utf-8')); n=len(s); f=sum(1 for x in s if x.get('feed')); print(f'快照 {n} 条（其中国内 RSS {f} 条）'); sys.exit(0 if n>=50 else 1)"; then
+            echo "::error::快照条目不足 50，抓取可能失败"
+            exit 1
+          fi
+
+      # 只上传 HTML —— 源码（pack.py / core.js 等）没有部署必要，
+      # 同时避免把抓取脚本暴露在公开站点上
+      - name: 准备部署目录
+        run: |
+          # 站点名优先取仓库密钥，未配置则用默认名
+          if [ -n "$EDGEONE_SITE_NAME" ]; then SITE_NAME="$EDGEONE_SITE_NAME"; fi
+          echo "SITE_NAME=$SITE_NAME" >> "$GITHUB_ENV"
+          mkdir -p dist
+          cp aihot-intel.html dist/index.html
+
+      - name: 部署到 EdgeOne Pages
+        env:
+          EDGEONE_API_TOKEN: ${{ secrets.EDGEONE_API_TOKEN }}
+        run: |
+          # 用 --json 拿机器可读结果，最后一行是单个 JSON 对象
+          # 区域：global=国际版（邮箱注册，免备案）；china=国内版（需实名，含国内节点）
+          npx --yes edgeone@latest makers deploy ./dist \
+            -n "$SITE_NAME" \
+            -t "$EDGEONE_API_TOKEN" \
+            -a "$EDGEONE_AREA" \
+            -e production \
+            --json | tee deploy-result.json
+
+      - name: 解析部署结果
+        if: always()
+        run: |
+          if [ ! -f deploy-result.json ]; then
+            echo "::error::未拿到部署结果文件"
+            exit 1
+          fi
+          if ! python -c "import json,sys; r=open('deploy-result.json',encoding='utf-8').read().strip().splitlines(); d=json.loads(r[-1]) if r else {}; print('::notice title=部署成功::'+d.get('url','')) if d.get('status')=='success' else None; open('DEPLOY_URL','w',encoding='utf-8').write(d.get('url','')) if d.get('status')=='success' else None; sys.exit(0 if d.get('status')=='success' else 1)"; then
+            echo "::error::部署失败，请查看上一步日志"
+            exit 1
+          fi
+
+      - name: 记录摘要
+        if: always()
+        run: |
+          URL="$(cat DEPLOY_URL 2>/dev/null || echo '（部署未成功）')"
+          N=$(python -c "import json;print(len(json.load(open('data/refreshed.json',encoding='utf-8'))))" 2>/dev/null || echo '?')
+          {
+            echo "### 情报看板更新 $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| 指标 | 值 |"
+            echo "|---|---|"
+            echo "| 快照条目 | $N |"
+            echo "| 产物体积 | $(wc -c < aihot-intel.html) 字节 |"
+            echo "| 访问地址 | $URL |"
+          } >> "$GITHUB_STEP_SUMMARY"
