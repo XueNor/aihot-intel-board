@@ -5,6 +5,7 @@ data/all_*.json
 data/pool.json
 dist/
 .shots/
+.edgeone/
 *.tmp
 *.bak
 
